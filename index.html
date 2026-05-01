@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temp Mail App</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
+
+body{
+background:linear-gradient(180deg,#f3f4f6,#e8e6df);
+padding:15px;
+}
+
+/* CARD */
+.card{
+background:#fff;
+border-radius:28px;
+padding:18px;
+margin-bottom:15px;
+box-shadow:0 12px 30px rgba(0,0,0,0.06);
+}
+
+/* HEADER */
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.profile{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.avatar{
+width:45px;height:45px;
+background:#c7e7d3;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:600;
+color:#1f7a4f;
+}
+
+/* MAIN CARD */
+.main-card{
+background:linear-gradient(135deg,#1db954,#178a3f);
+color:white;
+border-radius:32px;
+padding:22px;
+}
+
+.main-card h1{
+font-size:42px;
+margin:10px 0;
+}
+
+/* EMAIL */
+.email-box{
+background:white;
+color:black;
+padding:12px;
+border-radius:16px;
+font-size:14px;
+word-break:break-all;
+}
+
+/* BUTTON */
+.btn-group{
+display:flex;
+gap:10px;
+margin-top:12px;
+}
+.btn{
+flex:1;
+padding:12px;
+border:none;
+border-radius:16px;
+font-weight:500;
+cursor:pointer;
+}
+.copy{background:#d1d5db}
+.refresh{background:#bbf7d0}
+
+/* INBOX */
+.email-item{
+padding:12px;
+border-bottom:1px solid #eee;
+}
+.email-item:last-child{border:none}
+
+/* PROVIDE SECTION */
+.provide{
+text-align:center;
+margin-top:10px;
+}
+.provide h3{
+margin-bottom:5px;
+}
+.provide p{
+color:gray;
+font-size:13px;
+margin-bottom:15px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.box{
+background:#fff;
+padding:15px;
+border-radius:20px;
+box-shadow:0 10px 20px rgba(0,0,0,0.05);
+font-size:13px;
+}
+
+/* MODAL */
+.modal{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+justify-content:center;
+align-items:center;
+}
+.modal-content{
+background:#fff;
+padding:20px;
+border-radius:20px;
+max-width:90%;
+max-height:80%;
+overflow:auto;
+}
+</style>
+</head>
+
+<body>
+
+<!-- USER -->
+<div class="card header">
+<div class="profile">
+<div class="avatar">T</div>
+<div>
+<div style="font-size:12px;color:gray">TEMP MAIL</div>
+<div style="font-weight:600">User</div>
+</div>
+</div>
+<div>📩</div>
+</div>
+
+<!-- EMAIL CARD -->
+<div class="main-card">
+<div>Your Temporary Email</div>
+<h1 id="email">Loading...</h1>
+
+<div class="email-box" id="emailBox">Generating...</div>
+
+<div class="btn-group">
+<button class="btn copy" onclick="copyEmail()">Copy</button>
+<button class="btn refresh" onclick="createInbox()">New</button>
+</div>
+</div>
+
+<!-- INBOX -->
+<div class="card">
+<h3>Inbox</h3>
+<div id="emailsList">Loading...</div>
+</div>
+
+<!-- WHAT WE PROVIDE -->
+<div class="provide">
+<h3>What We Provide</h3>
+<p>Fast, secure and private temporary email service</p>
+
+<div class="grid">
+<div class="box">🔒 100% Private</div>
+<div class="box">⚡ Instant Email</div>
+<div class="box">🗑 Auto Delete</div>
+<div class="box">🚫 Spam Free</div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+<div class="modal-content">
+<p id="modalBody"></p>
+<button onclick="closeModal()">Close</button>
+</div>
+</div>
+
+<script>
+
+const API_KEY="YOUR_API_KEY";
+let inboxId="";
+
+/* CREATE */
+async function createInbox(){
+let res=await fetch("https://api.mailslurp.com/inboxes",{
+method:"POST",
+headers:{"x-api-key":API_KEY}
+});
+let data=await res.json();
+inboxId=data.id;
+
+document.getElementById("email").innerText=data.emailAddress.split("@")[0];
+document.getElementById("emailBox").innerText=data.emailAddress;
+
+fetchEmails();
+}
+
+/* FETCH */
+async function fetchEmails(){
+if(!inboxId)return;
+
+let list=document.getElementById("emailsList");
+list.innerHTML="Loading...";
+
+let res=await fetch(`https://api.mailslurp.com/inboxes/${inboxId}/emails`,{
+headers:{"x-api-key":API_KEY}
+});
+let emails=await res.json();
+list.innerHTML="";
+
+if(emails.length===0){
+list.innerHTML="<p>No emails yet</p>";
+return;
+}
+
+emails.forEach(e=>{
+let div=document.createElement("div");
+div.className="email-item";
+div.innerHTML=`<b>${e.from}</b><br>${e.subject||"No Subject"}`;
+div.onclick=()=>openEmail(e.id);
+list.appendChild(div);
+});
+}
+
+/* OPEN */
+async function openEmail(id){
+let res=await fetch(`https://api.mailslurp.com/emails/${id}`,{
+headers:{"x-api-key":API_KEY}
+});
+let data=await res.json();
+
+document.getElementById("modalBody").innerText=data.body;
+document.getElementById("modal").style.display="flex";
+}
+
+/* CLOSE */
+function closeModal(){
+document.getElementById("modal").style.display="none";
+}
+
+/* COPY */
+function copyEmail(){
+navigator.clipboard.writeText(document.getElementById("emailBox").innerText);
+alert("Copied!");
+}
+
+createInbox();
+
+</script>
+
+</body>
+</html>
